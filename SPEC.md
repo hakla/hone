@@ -1,129 +1,129 @@
-# Hone – Sprachgesteuerte Texteingabe und Textbearbeitung
+# Hone – Voice-driven text entry and editing
 
-## Zweck und Abgrenzung
+## Purpose and scope
 
-Hone verbindet bestehende Programme für Spracherkennung, Textverarbeitung und Texteingabe unter KDE Wayland. Es ermöglicht schnelle Diktate ohne LLM sowie gezielt aufrufbare Nachbearbeitung und sprachgesteuerte Bearbeitung markierter Texte.
+Hone connects existing tools for speech recognition, text processing, and text entry on KDE Wayland. It enables fast dictation without an LLM, on-demand text cleanup, and voice-driven editing of selected text.
 
-Hone ist eine schlanke, eigenständig aufrufbare CLI. Es bringt keine eigene Spracherkennung, Audioaufnahme, Tastaturüberwachung oder Clipboard-Verwaltung mit und benötigt keinen eigenen Daemon. Globale Tastenkürzel werden über die Desktopumgebung eingerichtet. Die verwendeten Programme sind über konfigurierbare Befehle austauschbar; Voxtype, Ollama, wl-clipboard und eitype bilden die vorgesehene Integration.
+Hone is a lightweight, standalone CLI. It does not implement its own speech recognition, audio recording, keyboard monitoring, or clipboard management, and it does not require its own daemon. Global keyboard shortcuts are configured through the desktop environment. The tools it uses can be replaced through configurable commands; Voxtype, Ollama, wl-clipboard, and eitype form the intended integration.
 
-## Bedienung
+## Usage
 
-Vier Funktionen stehen unabhängig voneinander zur Verfügung und können jeweils einem eigenen globalen Tastenkürzel zugeordnet werden.
+Four functions are available independently, each of which can be assigned its own global keyboard shortcut.
 
-| Befehl | Funktion | Eingabe | Verarbeitung |
+| Command | Function | Input | Processing |
 | --- | --- | --- | --- |
-| `hone dictate --raw` | Normales Diktat | Sprache | Transkription ohne LLM |
-| `hone dictate` | Diktat mit Cleanup | Sprache | Transkription und Cleanup |
-| `hone clip` | Clipboard-Cleanup | Text aus der Zwischenablage | Cleanup |
-| `hone edit` | Kommandomodus | Markierter Text und gesprochene Anweisung | Bearbeitung des Textes gemäß der Anweisung |
+| `hone dictate --raw` | Raw dictation | Speech | Transcription without an LLM |
+| `hone dictate` | Dictation with cleanup | Speech | Transcription and cleanup |
+| `hone clip` | Clipboard cleanup | Clipboard text | Cleanup |
+| `hone edit` | Command mode | Selected text and spoken instruction | Editing the text according to the instruction |
 
-Alle vier Funktionen werden von Hone abgewickelt. Bei den sprachbasierten Funktionen startet der erste Aufruf die Aufnahme; der zweite Aufruf desselben Befehls beendet sie und übernimmt die fertige Transkription. Clipboard-Cleanup benötigt keine Aufnahme und wird mit einem Aufruf ausgeführt.
+All four functions are handled by Hone. For speech-based functions, the first invocation starts recording; the second invocation of the same command stops recording and retrieves the completed transcription. Clipboard cleanup does not require recording and runs in a single invocation.
 
-Eine leere Transkription führt weder zu einer Ausgabe noch zu einem Aufruf der Textverarbeitung. Während der LLM-Verarbeitung gibt Hone eine sichtbare Rückmeldung.
+An empty transcription results in neither text output nor a call to the text processing backend. Hone provides visible feedback while LLM processing is in progress.
 
-### Textausgabe
+### Text output
 
-Alle vier Funktionen fügen das Ergebnis über die Zwischenablage in die aktive Anwendung ein. Es findet keine zeichenweise Simulation der Texteingabe statt. Das Ergebnis wird nicht lediglich auf stdout oder in der Zwischenablage ausgegeben.
+All four functions paste their result into the active application through the clipboard. Text entry is not simulated character by character. The result is not merely written to stdout or left on the clipboard.
 
-Ist an der Eingabeposition eine Textauswahl vorhanden, wird diese durch das Ergebnis ersetzt. Mehrzeilige Texte werden als Text eingefügt, nicht als Folge einzelner Enter-Tastendrücke. Die ursprüngliche Zwischenablage wird anschließend gemäß den Regeln im Abschnitt „Zwischenablage“ wiederhergestellt. Die Zielanwendung erhält beim Einfügen das Ergebnis und nicht den vorherigen Clipboard-Inhalt.
+If text is selected at the insertion point, the result replaces that selection. Multiline text is pasted as text rather than as a sequence of individual Enter keystrokes. The original clipboard contents are then restored according to the rules in the "Clipboard" section. When pasting, the target application receives the result, not the previous clipboard contents.
 
-Die Ausgabe erfolgt an der zum Zeitpunkt des Einfügens aktiven Eingabeposition. Hone verfolgt weder Fenster noch Textauswahlen. Geht die ursprüngliche Auswahl während der Verarbeitung verloren, wird das Ergebnis an der dann aktiven Eingabeposition eingefügt.
+Output is delivered to the insertion point that is active at the time of pasting. Hone does not track windows or text selections. If the original selection is lost during processing, the result is pasted at the insertion point that is active at that time.
 
-Hone verwendet einen global konfigurierbaren Einfügebefehl. Anwendungen mit davon abweichenden Einfügekürzeln, insbesondere Terminals, können eine andere Einstellung erfordern. Eine automatische Unterscheidung nach Anwendung findet nicht statt.
+Hone uses a globally configurable paste command. Applications with different paste shortcuts, particularly terminals, may require a different setting. Hone does not automatically distinguish between applications.
 
-## Normales Diktat
+## Raw dictation
 
-Hone übernimmt die abgeschlossene Transkription und fügt sie ohne LLM-gestützte Nachbearbeitung ein. Das Diktierwerkzeug gibt den Text nicht selbst in die aktive Anwendung aus. Die Funktion ist unabhängig von der Verfügbarkeit des Textverarbeitungs-Backends.
+Hone retrieves the completed transcription and pastes it without LLM-based post-processing. The dictation tool does not itself insert the text into the active application. This function does not depend on the availability of the text processing backend.
 
-## Diktat mit Cleanup
+## Dictation with cleanup
 
-Hone übernimmt die abgeschlossene Transkription, ohne dass das Diktierwerkzeug sie selbst in die aktive Anwendung einfügt.
+Hone retrieves the completed transcription without the dictation tool inserting it into the active application.
 
-Der erkannte Text wird mit dem Cleanup-Prompt verarbeitet. Bei erfolgreicher Verarbeitung wird nur der nachbearbeitete Text eingefügt, nicht zusätzlich die ursprüngliche Transkription.
+The recognized text is processed using the cleanup prompt. If processing succeeds, only the cleaned-up text is pasted, not the original transcription as well.
 
-Schlägt die Textverarbeitung fehl, beispielsweise weil das Backend nicht erreichbar ist oder nicht rechtzeitig antwortet, wird die unbearbeitete Transkription eingefügt und der Fehler angezeigt.
+If text processing fails, for example because the backend is unreachable or does not respond in time, Hone pastes the unprocessed transcription and displays the error.
 
-## Clipboard-Cleanup
+## Clipboard cleanup
 
-Hone liest den aktuellen Textinhalt der normalen Zwischenablage und verwendet denselben Cleanup-Prompt wie beim Diktat mit Cleanup.
+Hone reads the current text contents of the regular clipboard and uses the same cleanup prompt as dictation with cleanup.
 
-Das Ergebnis wird in die aktive Anwendung eingefügt. Der ursprüngliche Clipboard-Inhalt bleibt nach der Wiederherstellung gemäß den Regeln im Abschnitt „Zwischenablage“ erhalten. Der Modus kann auch für Texte verwendet werden, die nicht durch Diktat entstanden sind.
+The result is pasted into the active application. The original clipboard contents are preserved through restoration according to the rules in the "Clipboard" section. This mode can also be used for text that did not originate from dictation.
 
-Enthält die Zwischenablage keinen Text, wird der Vorgang mit einem Hinweis abgebrochen. Schlägt die Textverarbeitung fehl, wird der Fehler angezeigt und nichts eingefügt.
+If the clipboard contains no text, the operation is aborted with a notification. If text processing fails, the error is displayed and nothing is pasted.
 
-## Cleanup-Verhalten
+## Cleanup behavior
 
-Cleanup korrigiert die Eingabe, ohne sie inhaltlich umzuschreiben:
+Cleanup corrects the input without rewriting its content:
 
-- Rechtschreibung, Grammatik, Zeichensetzung und offensichtliche Spracherkennungsfehler werden korrigiert; Füllwörter und erkennbare Fehlstarts werden entfernt.
-- Die ursprüngliche Sprache, Bedeutung und möglichst auch die Formulierung bleiben erhalten. Bereits korrekter Text bleibt unverändert.
-- Technische Begriffe, API-Namen, Klassen, Methoden, Variablen und Dateipfade werden als solche erkannt. Gesprochene Bezeichner werden bei eindeutigem Kontext in übliche Entwicklernotation übertragen, einschließlich PascalCase, camelCase, snake_case, kebab-case und UPPER_SNAKE_CASE.
-- Qualifizierte Bezeichner behalten ihre Trennzeichen. Bei mehrdeutigen Bezeichnern werden keine Namen erfunden und keine unbegründeten Änderungen vorgenommen.
-- Die Ausgabe enthält ausschließlich den bereinigten Text. Es werden keine Erklärungen, einleitenden Sätze, umschließenden Anführungszeichen oder Markdown-Codeblöcke hinzugefügt, die nicht zum eigentlichen Text gehören. Bereits vorhandene, zum Text gehörende Formatierung bleibt erhalten.
+- Spelling, grammar, punctuation, and obvious speech recognition errors are corrected; filler words and recognizable false starts are removed.
+- The original language, meaning, and, as far as possible, wording are preserved. Text that is already correct remains unchanged.
+- Technical terms, API names, classes, methods, variables, and file paths are recognized as such. When the context is unambiguous, spoken identifiers are converted into conventional developer notation, including PascalCase, camelCase, snake_case, kebab-case, and UPPER_SNAKE_CASE.
+- Qualified identifiers retain their separators. When identifiers are ambiguous, no names are invented and no unjustified changes are made.
+- The output contains only the cleaned-up text. No explanations, introductory sentences, enclosing quotation marks, or Markdown code blocks that are not part of the intended text are added. Existing formatting that belongs to the text is preserved.
 
-Beispiele:
+Examples:
 
-| Eingabe | Erwartetes Ergebnis |
+| Input | Expected result |
 | --- | --- |
 | `ähm das müssen wir morgen nochmal prüfen` | `Das müssen wir morgen nochmal prüfen.` |
-| `Router Service Punkt on routes recognized` (als qualifizierter Klassen- und Methodenname diktiert) | `RouterService.onRoutesRecognized` |
+| `Router Service Punkt on routes recognized` (dictated as a qualified class and method name) | `RouterService.onRoutesRecognized` |
 | `Die Methode liefert das Ergebnis als JSON.` | `Die Methode liefert das Ergebnis als JSON.` |
 
-## Kommandomodus
+## Command mode
 
-Der Benutzer markiert den zu bearbeitenden Text in der aktiven Anwendung und startet den Kommandomodus. Hone übernimmt die aktuelle Textauswahl zu Beginn der Aufnahme. Ein zuvor kopierter Text darf nicht fälschlich als aktuelle Auswahl behandelt werden. Ist kein Text ausgewählt, wird der Vorgang mit einem Hinweis abgebrochen, ohne die Textverarbeitung aufzurufen.
+The user selects the text to edit in the active application and starts command mode. Hone captures the current text selection at the start of recording. Previously copied text must not be mistaken for the current selection. If no text is selected, the operation is aborted with a notification, without calling the text processing backend.
 
-Der Benutzer spricht die gewünschte Bearbeitung. Nach Abschluss der Aufnahme übernimmt Hone die Transkription als Anweisung. Der ausgewählte Text und die gesprochene Anweisung werden getrennt an die Textverarbeitung übergeben. Der Kommandomodus verwendet einen eigenen Prompt, der die gewünschte Textbearbeitung ausführt, anstatt ausschließlich Cleanup anzuwenden.
+The user speaks the desired editing instruction. Once recording is complete, Hone retrieves the transcription as the instruction. The selected text and the spoken instruction are passed separately to the text processing backend. Command mode uses its own prompt to perform the requested text transformation rather than applying cleanup alone.
 
-Die Textverarbeitung liefert ausschließlich den gewünschten bearbeiteten Text zurück, ohne zusätzliche Erklärungen oder unerwünschte Formatierungen. Ausdrücklich gewünschte Formatierungen, beispielsweise ein Markdown-Codeblock, gehören zum Ergebnis und werden beibehalten.
+The text processing backend returns only the requested edited text, without additional explanations or unwanted formatting. Explicitly requested formatting, such as a Markdown code block, is part of the result and is preserved.
 
-Hone fügt das Ergebnis ein und ersetzt damit die noch bestehende Textauswahl. Die ursprüngliche Zwischenablage wird sowohl nach der Übernahme der Auswahl als auch nach dem Einfügen gemäß den Regeln im Abschnitt „Zwischenablage“ wiederhergestellt. Schlägt die Textverarbeitung fehl, wird der Fehler angezeigt und nichts eingefügt; der ausgewählte Text bleibt unverändert.
+Hone pastes the result, replacing the text selection if it is still present. The original clipboard contents are restored both after capturing the selection and after pasting, according to the rules in the "Clipboard" section. If text processing fails, the error is displayed and nothing is pasted; the selected text remains unchanged.
 
-Beispiele:
+Examples:
 
-| Markierter Text | Gesprochene Anweisung | Erwartetes Ergebnis |
+| Selected text | Spoken instruction | Expected result |
 | --- | --- | --- |
-| `Das Feature funktioniert nicht richtig und wir müssen uns das nochmal anschauen.` | „Übersetze das ins Englische und formuliere es als GitHub-Issue-Titel.“ | `Investigate and fix incorrect feature behavior` |
-| `Die Methode funktioniert nicht.` | „Übersetze das ins Englische.“ | `The method does not work.` |
+| `Das Feature funktioniert nicht richtig und wir müssen uns das nochmal anschauen.` | "Übersetze das ins Englische und formuliere es als GitHub-Issue-Titel." | `Investigate and fix incorrect feature behavior` |
+| `Die Methode funktioniert nicht.` | "Übersetze das ins Englische." | `The method does not work.` |
 
-Die Beispiele für Cleanup und Kommandomodus veranschaulichen das erwartete Verhalten; sie schreiben keine exakten Modellantworten für jede mögliche Eingabe vor.
+The examples for cleanup and command mode illustrate the expected behavior; they do not prescribe exact model responses for every possible input.
 
-Die gesprochene Anweisung bezieht sich auf die Bearbeitung von Text. Hone führt keine vom Modell erzeugten Shell-Befehle aus und nimmt keine vom Modell veranlassten Aktionen außerhalb der Textbearbeitung vor.
+The spoken instruction concerns text editing. Hone does not execute shell commands generated by the model or perform model-directed actions outside text editing.
 
-## Zwischenablage
+## Clipboard
 
-Die Zwischenablage wird nur vorübergehend zur Übernahme einer Textauswahl und zum Einfügen des Ergebnisses verwendet. Der vorherige Inhalt wird nach diesen Vorgängen wiederhergestellt, auch wenn die Verarbeitung abgebrochen wird oder fehlschlägt. Die Wiederherstellung nach dem Einfügen darf nicht dazu führen, dass die Zielanwendung statt des Ergebnisses den vorherigen Inhalt einfügt.
+The clipboard is used only temporarily to capture a text selection and paste the result. Its previous contents are restored after these operations, even if processing is aborted or fails. Restoration after pasting must not cause the target application to paste the previous clipboard contents instead of the result.
 
-Insbesondere darf bei der Wiederherstellung von Text nicht HTML-Quelltext anstelle des ursprünglichen Klartexts in der Zwischenablage landen. Diese Anforderung adressiert den bereits beobachteten Fehler bei Voxtype.
+In particular, restoring text must not leave HTML source code on the clipboard instead of the original plain text. This requirement addresses a previously observed bug in Voxtype.
 
-Die vorgesehene wl-clipboard-Integration kann beim Wiederherstellen nur eine Nutzdaten-Repräsentation pro Aufruf anbieten. Eine vollständige Wiederherstellung aller gleichzeitig angebotenen MIME-Repräsentationen ist daher nicht zugesichert; bei Text wird eine Klartext-Repräsentation bevorzugt.
+The intended wl-clipboard integration can offer only one payload representation per invocation when restoring the clipboard. Complete restoration of all simultaneously offered MIME representations is therefore not guaranteed; for text, a plain-text representation is preferred.
 
-Die von Hone vorübergehend zum Einfügen in die Zwischenablage geschriebenen Ergebnisse sollen nicht im KDE-Clipboard-Verlauf (Klipper) erscheinen. Hone kennzeichnet diese Inhalte als sensibel. Für Text, den die aktive Anwendung beim Kopieren der Auswahl im Kommandomodus selbst in die Zwischenablage schreibt, wird dies nicht zugesichert. Beim Wiederherstellen ursprünglich sensibler Clipboard-Inhalte bleibt deren sensible Kennzeichnung erhalten. Für andere Clipboard-Manager wird das Verhalten des Verlaufs nicht zugesichert.
+Results temporarily written to the clipboard by Hone for pasting should not appear in the KDE clipboard history (Klipper). Hone marks these contents as sensitive. This is not guaranteed for text that the active application itself writes to the clipboard when copying a selection in command mode. When originally sensitive clipboard contents are restored, their sensitive designation is preserved. Clipboard history behavior is not guaranteed for other clipboard managers.
 
-## Integration und Konfiguration
+## Integration and configuration
 
-### Spracherkennung
+### Speech recognition
 
-Voxtype ist für Aufnahme und Spracherkennung zuständig. Seine integrierte LLM-Nachbearbeitung ist deaktiviert.
+Voxtype handles recording and speech recognition. Its built-in LLM post-processing is disabled.
 
-Hone übernimmt die Transkription für alle sprachbasierten Funktionen über die öffentliche Voxtype-CLI. Die Aufnahme wird mit einer nur für diese Aufnahme geltenden Dateiausgabe gestartet (`record start --file=<Pfad>`) und über `record stop --wait` beendet. Der fertige Text wird über stdout übernommen. Der normale Voxtype-Ausgabemodus bleibt unverändert; ein eigenes Voxtype-Profil ist nicht erforderlich.
+Hone retrieves the transcription for all speech-based functions through the public Voxtype CLI. Recording is started with file output specific to that recording (`record start --file=<path>`) and stopped with `record stop --wait`. The completed text is retrieved from stdout. The regular Voxtype output mode remains unchanged; no separate Voxtype profile is required.
 
-Die Befehle zum Starten und Beenden der Aufnahme sind konfigurierbar. Ein alternatives Diktierwerkzeug muss eine entsprechende Aufnahmesteuerung und die Übernahme der abgeschlossenen Transkription ohne eigene Textausgabe in die aktive Anwendung ermöglichen.
+The commands for starting and stopping recording are configurable. An alternative dictation tool must provide equivalent recording control and allow the completed transcription to be retrieved without inserting text into the active application itself.
 
-### Textverarbeitung
+### Text processing
 
-Ollama wird über eine OpenAI-kompatible HTTP-Schnittstelle angesprochen. Server-URL und Modell sind zentral konfigurierbar. Eine lokale Ollama-CLI ist nicht erforderlich.
+Ollama is accessed through an OpenAI-compatible HTTP API. The server URL and model are configured centrally. A local Ollama CLI is not required.
 
-Der gemeinsame Cleanup-Prompt und der Prompt für den Kommandomodus sind separat konfigurierbar. Die Textverarbeitung ist nicht auf einen bestimmten Anbieter festgelegt; alternativ kann ein konfigurierbarer externer Befehl die Verarbeitung übernehmen. Dieser erhält den zu verarbeitenden Text und im Kommandomodus zusätzlich die davon getrennte Anweisung. Das Ergebnis liefert er als Text über stdout.
+The shared cleanup prompt and the command mode prompt are separately configurable. Text processing is not tied to a particular provider; alternatively, a configurable external command can perform the processing. It receives the text to process and, in command mode, the separate instruction as well. It returns the result as text through stdout.
 
-### Zwischenablage und Tastensimulation
+### Clipboard and keyboard simulation
 
-Die Befehle zum Lesen und Schreiben der Zwischenablage sowie zum Auslösen von Kopieren und Einfügen sind konfigurierbar. Die vorgesehene Integration verwendet `wl-paste`, `wl-copy` und `eitype`. eitype dient ausschließlich der Simulation von Tastenkombinationen. Für Hone sind kein Zugriff auf `/dev/uinput`, keine Mitgliedschaft in der `input`-Gruppe und kein privilegierter Eingabedienst erforderlich.
+The commands for reading and writing the clipboard and triggering copy and paste are configurable. The intended integration uses `wl-paste`, `wl-copy`, and `eitype`. eitype is used exclusively to simulate keyboard shortcuts. Hone requires neither access to `/dev/uinput`, membership in the `input` group, nor a privileged input service.
 
-Zur Übernahme der Textauswahl wird der in Murmure verwendete Ansatz genutzt: Zwischenablage sichern, leeren, Kopierbefehl auslösen, den neu kopierten Text übernehmen und die ursprüngliche Zwischenablage wiederherstellen.
+To capture a text selection, Hone uses the approach employed by Murmure: save the clipboard, clear it, trigger the copy command, retrieve the newly copied text, and restore the original clipboard contents.
 
-Zur Ausgabe wird das Ergebnis vorübergehend in die Zwischenablage geschrieben, der Einfügebefehl ausgelöst und anschließend der ursprüngliche Inhalt wiederhergestellt. Die vorgesehene Kennzeichnung temporärer Ergebnisse als sensibel erfolgt über `wl-copy --sensitive` (KDE-MIME-Hinweis `x-kde-passwordManagerHint`).
+For output, the result is temporarily written to the clipboard, the paste command is triggered, and the original contents are then restored. The intended mechanism for marking temporary results as sensitive is `wl-copy --sensitive` (the KDE MIME hint `x-kde-passwordManagerHint`).
 
-## Projekt
+## Project
 
-Hone wird in einem eigenständigen GitHub-Repository geführt. Diese Spec ist der fortlaufend gepflegte Produktvertrag. Die Benutzerdokumentation beschreibt Installation, Konfiguration und Verwendung.
+Hone is maintained in a standalone GitHub repository. This spec is the continuously maintained product contract. The user documentation describes installation, configuration, and usage.

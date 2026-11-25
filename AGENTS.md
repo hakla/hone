@@ -15,7 +15,7 @@ There are no approval records, change records or change logs. Durable informatio
 
 ### Approval
 
-Owner approvals are required steps, but they are not stored as artifacts. Treat something as approved only when the owner explicitly says so in the current assignment, naming the branch or commit it refers to. A commit, a passing review, a pull request or another agent's statement is never an approval.
+Owner approvals are required steps, but they are not stored as artifacts. Treat something as approved only when the owner has explicitly approved it, either directly or as relayed by the orchestrating agent that received the approval. A commit, a passing review, a pull request or an agent's own judgment is never an approval.
 
 ### Sequence
 
@@ -69,5 +69,3 @@ Findings from owner acceptance are either:
 
 - a **defect**: the software contradicts the approved spec; fixed against the existing spec;
 - a **product change**: the owner wants different behavior; made as an approved spec change first, then implemented.
-
-Decisions that should apply beyond one feature go into the spec, not into comments or task lists.

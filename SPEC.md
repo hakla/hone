@@ -19,6 +19,8 @@ Four functions are available independently, each of which can be assigned its ow
 
 All four functions are handled by Hone. For speech-based functions, the first invocation starts recording; the second invocation of the same command stops recording and retrieves the completed transcription. Clipboard cleanup does not require recording and runs in a single invocation.
 
+While a recording is in progress, any Hone command stops it. The recording is processed in the mode in which it was started; the command that stopped it is not executed itself.
+
 An empty transcription results in neither text output nor a call to the text processing backend. Hone provides visible feedback while LLM processing is in progress.
 
 ### Text output
@@ -41,7 +43,7 @@ Hone retrieves the completed transcription without the dictation tool inserting 
 
 The recognized text is processed using the cleanup prompt. If processing succeeds, only the cleaned-up text is pasted, not the original transcription as well.
 
-If text processing fails, for example because the backend is unreachable or does not respond in time, Hone pastes the unprocessed transcription and displays the error.
+If text processing fails, for example because the backend is unreachable or does not respond within the configurable timeout, Hone pastes the unprocessed transcription and displays the error.
 
 ## Clipboard cleanup
 
@@ -94,13 +96,17 @@ The spoken instruction concerns text editing. Hone does not execute shell comman
 
 The clipboard is used only temporarily to capture a text selection and paste the result. Its previous contents are restored after these operations, even if processing is aborted or fails. Restoration after pasting must not cause the target application to paste the previous clipboard contents instead of the result.
 
-In particular, restoring text must not leave HTML source code on the clipboard instead of the original plain text. This requirement addresses a previously observed bug in Voxtype.
+In particular, restoring text must not leave HTML source code on the clipboard instead of the original plain text.
 
-The intended wl-clipboard integration can offer only one payload representation per invocation when restoring the clipboard. Complete restoration of all simultaneously offered MIME representations is therefore not guaranteed; for text, a plain-text representation is preferred.
+The intended wl-clipboard integration offers one payload representation per invocation, optionally together with the sensitive hint. Complete restoration of all simultaneously offered MIME representations is therefore not guaranteed; for text, a plain-text representation is preferred.
 
 Results temporarily written to the clipboard by Hone for pasting should not appear in the KDE clipboard history (Klipper). Hone marks these contents as sensitive. This is not guaranteed for text that the active application itself writes to the clipboard when copying a selection in command mode. When originally sensitive clipboard contents are restored, their sensitive designation is preserved. Clipboard history behavior is not guaranteed for other clipboard managers.
 
-## Integration and configuration
+## Technical constraints
+
+### Implementation
+
+Hone is implemented in Go.
 
 ### Speech recognition
 
@@ -122,7 +128,7 @@ The commands for reading and writing the clipboard and triggering copy and paste
 
 To capture a text selection, Hone uses the approach employed by Murmure: save the clipboard, clear it, trigger the copy command, retrieve the newly copied text, and restore the original clipboard contents.
 
-For output, the result is temporarily written to the clipboard, the paste command is triggered, and the original contents are then restored. The intended mechanism for marking temporary results as sensitive is `wl-copy --sensitive` (the KDE MIME hint `x-kde-passwordManagerHint`).
+For output, the result is temporarily written to the clipboard, the paste command is triggered, and the original contents are then restored. The intended mechanism for marking temporary results as sensitive is `wl-copy --sensitive` (the KDE MIME hint `x-kde-passwordManagerHint`), which requires wl-clipboard 2.3.0 or later.
 
 ## Project
 
